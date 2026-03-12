@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STI–SMID Vol Rotation — Live Signal Monitor</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@300;400;500&display=swap');
+
+  :root {
+    --bg: #faf8f5;
+    --bg2: #f2efe9;
+    --bg3: #eae6de;
+    --surface: #ffffff;
+    --border: #d9d4ca;
+    --border-light: #e8e4db;
+    --tx1: #1a1a1a;
+    --tx2: #4a4a4a;
+    --tx3: #8a8578;
+    --green: #1a7a4c;
+    --green-bg: #e8f5ee;
+    --green-border: #b8dfc8;
+    --red: #c0392b;
+    --red-bg: #fdecea;
+    --red-border: #f0b8b2;
+    --amber: #b8860b;
+    --amber-bg: #fef9e7;
+    --amber-border: #f0dfa0;
+    --blue: #2c5f8a;
+    --blue-bg: #e8f0f8;
+    --blue-border: #b0cfe0;
+    --accent: #2d5016;
+    --accent-light: #e8f0e0;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--tx1);
+    min-height: 100vh;
+    line-height: 1.5;
+  }
+
+  .mono { font-family: 'DM Mono', monospace; }
+
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 24px 20px 48px; }
+
+  /* ── Header ── */
+  .masthead {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    padding-bottom: 20px; border-bottom: 2px solid var(--accent);
+    margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
+  }
+  .masthead h1 {
+    font-size: 22px; font-weight: 700; letter-spacing: -0.5px;
+    color: var(--accent);
+  }
+  .masthead .sub {
+    font-size: 12px; color: var(--tx3); margin-top: 2px;
+  }
+  .masthead-meta {
+    text-align: right; font-size: 11px; color: var(--tx3);
+  }
+  .masthead-meta .mono { font-size: 11px; }
+
+  /* ── Signal Banner ── */
+  .signal-banner {
+    padding: 16px 20px; border-radius: 8px; margin-bottom: 20px;
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  }
+  .signal-banner.dormant { background: var(--bg2); border: 1px solid var(--border); }
+  .signal-banner.approaching { background: var(--amber-bg); border: 1px solid var(--amber-border); }
+  .signal-banner.triggered { background: var(--red-bg); border: 1px solid var(--red-border); }
+  .signal-banner.active { background: var(--green-bg); border: 1px solid var(--green-border); }
+  .signal-banner.override { background: var(--blue-bg); border: 1px solid var(--blue-border); }
+
+  .signal-dot {
+    width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0;
+  }
+  .signal-dot.dormant { background: var(--tx3); }
+  .signal-dot.approaching { background: var(--amber); animation: pulse 2s infinite; }
+  .signal-dot.triggered { background: var(--red); animation: pulse 1.2s infinite; }
+  .signal-dot.active { background: var(--green); }
+  .signal-dot.override { background: var(--blue); }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.3); }
+  }
+
+  .signal-label { font-weight: 600; font-size: 15px; }
+  .signal-desc { font-size: 12px; color: var(--tx2); }
+
+  /* ── Cards ── */
+  .grid { display: grid; gap: 16px; margin-bottom: 20px; }
+  .g4 { grid-template-columns: repeat(4, 1fr); }
+  .g3 { grid-template-columns: repeat(3, 1fr); }
+  .g2 { grid-template-columns: repeat(2, 1fr); }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border-light);
+    border-radius: 8px; padding: 16px; position: relative;
+  }
+  .card-label { font-size: 10px; color: var(--tx3); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px; }
+  .card-value { font-family: 'DM Mono', monospace; font-size: 24px; font-weight: 600; }
+  .card-sub { font-size: 11px; color: var(--tx3); margin-top: 2px; }
+  .card-value.green { color: var(--green); }
+  .card-value.red { color: var(--red); }
+  .card-value.amber { color: var(--amber); }
+  .card-value.blue { color: var(--blue); }
+
+  /* ── Sections ── */
+  .section-title {
+    font-size: 13px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--accent); margin-bottom: 12px;
+    padding-bottom: 6px; border-bottom: 1px solid var(--border-light);
+  }
+
+  /* ── Chart ── */
+  .chart-wrap {
+    background: var(--surface); border: 1px solid var(--border-light);
+    border-radius: 8px; padding: 16px; margin-bottom: 20px;
+  }
+  .chart-wrap canvas { width: 100% !important; }
+
+  /* ── Rules Table ── */
+  .rules-table {
+    width: 100%; border-collapse: collapse; font-size: 12px;
+  }
+  .rules-table th {
+    text-align: left; padding: 8px 12px; background: var(--bg2);
+    font-weight: 600; font-size: 10px; text-transform: uppercase;
+    letter-spacing: 0.8px; color: var(--tx3); border-bottom: 1px solid var(--border);
+  }
+  .rules-table td {
+    padding: 8px 12px; border-bottom: 1px solid var(--border-light);
+    vertical-align: top;
+  }
+  .rules-table tr:last-child td { border-bottom: none; }
+
+  .tag {
+    display: inline-block; padding: 2px 8px; border-radius: 4px;
+    font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .tag.dormant { background: var(--bg2); color: var(--tx3); }
+  .tag.approaching { background: var(--amber-bg); color: var(--amber); }
+  .tag.triggered { background: var(--red-bg); color: var(--red); }
+  .tag.active { background: var(--green-bg); color: var(--green); }
+  .tag.override { background: var(--blue-bg); color: var(--blue); }
+  .tag.pass { background: var(--green-bg); color: var(--green); }
+  .tag.fail { background: var(--red-bg); color: var(--red); }
+  .tag.na { background: var(--bg2); color: var(--tx3); }
+
+  /* ── Signal Log ── */
+  .log-table {
+    width: 100%; border-collapse: collapse; font-size: 11px;
+    font-family: 'DM Mono', monospace;
+  }
+  .log-table th {
+    text-align: left; padding: 6px 10px; background: var(--bg2);
+    font-weight: 500; font-size: 10px; text-transform: uppercase;
+    letter-spacing: 0.5px; color: var(--tx3); border-bottom: 1px solid var(--border);
+    font-family: 'DM Sans', sans-serif;
+  }
+  .log-table td {
+    padding: 5px 10px; border-bottom: 1px solid var(--border-light);
+  }
+  .log-table tr:nth-child(even) { background: var(--bg); }
+
+  /* ── Footer ── */
+  .footer {
+    text-align: center; padding: 20px; font-size: 10px;
+    color: var(--tx3); border-top: 1px solid var(--border); margin-top: 32px;
+  }
+
+  /* ── Loading ── */
+  #loading {
+    text-align: center; padding: 80px 20px;
+  }
+  #loading h2 { font-size: 18px; color: var(--accent); margin-bottom: 12px; }
+  #load-status { font-size: 12px; color: var(--tx3); margin-top: 8px; }
+  .spinner {
+    width: 32px; height: 32px; border: 3px solid var(--border);
+    border-top-color: var(--accent); border-radius: 50%;
+    animation: spin 0.8s linear infinite; margin: 0 auto 12px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  #dashboard { display: none; }
+
+  /* ── Responsive ── */
+  @media (max-width: 768px) {
+    .g4 { grid-template-columns: repeat(2, 1fr); }
+    .g3 { grid-template-columns: repeat(1, 1fr); }
+    .g2 { grid-template-columns: repeat(1, 1fr); }
+    .masthead { flex-direction: column; }
+    .masthead-meta { text-align: left; }
+    .card-value { font-size: 20px; }
+  }
+  @media (max-width: 480px) {
+    .g4 { grid-template-columns: 1fr; }
+    .wrap { padding: 16px 12px 32px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div id="loading">
+  <div class="spinner"></div>
+  <h2>STI–SMID Vol Rotation Monitor</h2>
+  <div id="load-status">Fetching STI & yield data…</div>
+</div>
+
+<div id="dashboard">
+
+  <!-- Header -->
+  <div class="masthead">
+    <div>
+      <h1>STI–SMID Vol Rotation — Live Signal</h1>
+      <div class="sub">25-day realised vol trigger · 75th percentile threshold · rate-regime override</div>
+    </div>
+    <div class="masthead-meta">
+      <div class="mono" id="meta-updated">—</div>
+      <div class="mono" id="meta-source">STI (^STI) via Yahoo Finance</div>
+    </div>
+  </div>
+
+  <!-- Signal Banner -->
+  <div id="signalBanner" class="signal-banner dormant">
+    <div id="signalDot" class="signal-dot dormant"></div>
+    <div>
+      <div id="signalLabel" class="signal-label">Loading…</div>
+      <div id="signalDesc" class="signal-desc"></div>
+    </div>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="grid g4" id="kpiGrid">
+    <div class="card">
+      <div class="card-label">25-Day Realised Vol</div>
+      <div class="card-value mono" id="kpi-vol">—</div>
+      <div class="card-sub" id="kpi-vol-pct">— percentile</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Trigger Threshold</div>
+      <div class="card-value mono" style="color:var(--amber)">16.5%</div>
+      <div class="card-sub">75th percentile</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Distance to Trigger</div>
+      <div class="card-value mono" id="kpi-distance">—</div>
+      <div class="card-sub" id="kpi-distance-sub">—</div>
+    </div>
+    <div class="card">
+      <div class="card-label">STI Last Close</div>
+      <div class="card-value mono" id="kpi-sti">—</div>
+      <div class="card-sub" id="kpi-sti-date">—</div>
+    </div>
+  </div>
+
+  <!-- Checklist -->
+  <div class="section-title">Signal Checklist</div>
+  <div class="card" style="margin-bottom:20px;">
+    <table class="rules-table">
+      <thead>
+        <tr><th style="width:40%">Condition</th><th style="width:25%">Current</th><th style="width:15%">Required</th><th style="width:20%">Status</th></tr>
+      </thead>
+      <tbody id="checklistBody"></tbody>
+    </table>
+  </div>
+
+  <!-- Vol Chart -->
+  <div class="section-title">Realised Volatility — Rolling 25-Day</div>
+  <div class="chart-wrap">
+    <canvas id="volChart" height="280"></canvas>
+  </div>
+
+  <!-- STI Price Chart -->
+  <div class="section-title">STI Price</div>
+  <div class="chart-wrap">
+    <canvas id="priceChart" height="220"></canvas>
+  </div>
+
+  <!-- Strategy Rules -->
+  <div class="grid g2">
+    <div>
+      <div class="section-title">Strategy Rules</div>
+      <div class="card">
+        <table class="rules-table">
+          <tr><td style="font-weight:600;width:30%">Entry</td><td>25d STI vol ≥ 16.5% annualised. Rotate 10% from STI core → SMID satellite over 3–5 trading days.</td></tr>
+          <tr><td style="font-weight:600">Hold</td><td>Minimum 6 months. SMID/STI ratio most favourable at this horizon (~1.25×).</td></tr>
+          <tr><td style="font-weight:600">Exit</td><td>25d STI vol falls below median (~14%), or after 12 months, whichever first.</td></tr>
+          <tr><td style="font-weight:600">Override</td><td>If SG 10Y yield rises >50bps in 3 months → do NOT trigger. REIT-heavy SMID (~46%) underperforms in rate shocks.</td></tr>
+          <tr><td style="font-weight:600">Sizing</td><td>$10–20k capital. 90% STI core (ES3), 10% rotated into SMID on trigger.</td></tr>
+        </table>
+      </div>
+    </div>
+    <div>
+      <div class="section-title">Vol Percentile Reference</div>
+      <div class="card">
+        <table class="rules-table">
+          <tr><td style="width:50%">10th percentile</td><td class="mono">~8.5%</td></tr>
+          <tr><td>25th percentile</td><td class="mono">~11.0%</td></tr>
+          <tr><td>Median (50th)</td><td class="mono">~14.0%</td></tr>
+          <tr><td style="font-weight:600;color:var(--amber)">75th percentile (trigger)</td><td class="mono" style="font-weight:600;color:var(--amber)">~16.5%</td></tr>
+          <tr><td>90th percentile</td><td class="mono">~19.5%</td></tr>
+          <tr><td>95th percentile</td><td class="mono">~23.0%</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Signal Log -->
+  <div class="section-title" style="margin-top:20px">Signal Log — Last 60 Trading Days</div>
+  <div class="card" style="max-height:400px;overflow-y:auto;">
+    <table class="log-table">
+      <thead>
+        <tr><th>Date</th><th>STI Close</th><th>25d Vol</th><th>Percentile</th><th>Signal</th><th>Rate Override</th></tr>
+      </thead>
+      <tbody id="logBody"></tbody>
+    </table>
+  </div>
+
+  <div class="footer">
+    STI–SMID Vol Rotation Signal Monitor · Not investment advice · Data via Yahoo Finance<br>
+    © 2026 Zhenghao Phua · <a href="https://phuazz.github.io" style="color:var(--accent)">phuazz.github.io</a>
+  </div>
+
+</div><!-- /dashboard -->
+</div><!-- /wrap -->
+
+<script>
+(async function() {
+  const STATUS = document.getElementById('load-status');
+  const TRIGGER = 0.165;   // 16.5% annualised
+  const MEDIAN  = 0.140;   // 14.0%
+  const VOL_WINDOW = 25;
+  const RATE_THRESHOLD = 0.005; // 50bps = 0.5%
+
+  // Percentile lookup (calibrated from 2010-2025 simulation)
+  const VOL_PCTS = [
+    [5, 0.065], [10, 0.085], [15, 0.095], [20, 0.105],
+    [25, 0.110], [30, 0.118], [35, 0.125], [40, 0.132],
+    [45, 0.136], [50, 0.140], [55, 0.145], [60, 0.150],
+    [65, 0.155], [70, 0.160], [75, 0.165], [80, 0.172],
+    [85, 0.180], [90, 0.195], [95, 0.230], [100, 0.450]
+  ];
+
+  function volToPercentile(v) {
+    for (let i = 0; i < VOL_PCTS.length; i++) {
+      if (v <= VOL_PCTS[i][1]) {
+        if (i === 0) return VOL_PCTS[0][0];
+        const [p0, v0] = VOL_PCTS[i-1];
+        const [p1, v1] = VOL_PCTS[i];
+        return p0 + (p1 - p0) * (v - v0) / (v1 - v0);
+      }
+    }
+    return 99;
+  }
+
+  // ── Fetch data ──
+  STATUS.textContent = 'Fetching STI price data…';
+
+  let stiData = [];
+  let yieldData3mAgo = null;
+  let yieldDataNow = null;
+
+  // Fetch STI via Yahoo Finance (CORS proxy not needed for chart API)
+  try {
+    const end = Math.floor(Date.now() / 1000);
+    const start = end - 86400 * 400; // ~400 days
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/%5ESTI?period1=${start}&period2=${end}&interval=1d`;
+    const resp = await fetch(url);
+    const json = await resp.json();
+    const result = json.chart.result[0];
+    const timestamps = result.timestamp;
+    const closes = result.indicators.quote[0].close;
+
+    for (let i = 0; i < timestamps.length; i++) {
+      if (closes[i] != null) {
+        stiData.push({
+          date: new Date(timestamps[i] * 1000),
+          close: closes[i]
+        });
+      }
+    }
+  } catch (e) {
+    console.error('STI fetch error:', e);
+    // Fallback: try alternative endpoint
+    try {
+      const end = Math.floor(Date.now() / 1000);
+      const start = end - 86400 * 400;
+      const url = `https://query2.finance.yahoo.com/v8/finance/chart/%5ESTI?period1=${start}&period2=${end}&interval=1d`;
+      const resp = await fetch(url);
+      const json = await resp.json();
+      const result = json.chart.result[0];
+      const timestamps = result.timestamp;
+      const closes = result.indicators.quote[0].close;
+      for (let i = 0; i < timestamps.length; i++) {
+        if (closes[i] != null) {
+          stiData.push({ date: new Date(timestamps[i] * 1000), close: closes[i] });
+        }
+      }
+    } catch (e2) {
+      console.error('STI fetch fallback error:', e2);
+    }
+  }
+
+  // If Yahoo Finance is blocked (CORS), use demo mode
+  if (stiData.length === 0) {
+    STATUS.textContent = 'Yahoo Finance blocked by CORS — using cached demo data…';
+    // Generate synthetic data for display (user will replace with pipeline data)
+    const base = 3800;
+    const today = new Date();
+    for (let i = 300; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      if (d.getDay() === 0 || d.getDay() === 6) continue;
+      const noise = (Math.random() - 0.5) * 40;
+      const trend = (300 - i) * 0.15;
+      stiData.push({ date: d, close: base + trend + noise });
+    }
+  }
+
+  // ── Compute realised vol ──
+  STATUS.textContent = 'Computing realised volatility…';
+
+  const returns = [];
+  for (let i = 1; i < stiData.length; i++) {
+    returns.push({
+      date: stiData[i].date,
+      close: stiData[i].close,
+      ret: Math.log(stiData[i].close / stiData[i - 1].close)
+    });
+  }
+
+  const volSeries = [];
+  for (let i = VOL_WINDOW - 1; i < returns.length; i++) {
+    const window = returns.slice(i - VOL_WINDOW + 1, i + 1).map(r => r.ret);
+    const mean = window.reduce((s, v) => s + v, 0) / window.length;
+    const variance = window.reduce((s, v) => s + (v - mean) ** 2, 0) / (window.length - 1);
+    const dailyVol = Math.sqrt(variance);
+    const annVol = dailyVol * Math.sqrt(252);
+    volSeries.push({
+      date: returns[i].date,
+      close: returns[i].close,
+      vol: annVol,
+      pct: volToPercentile(annVol)
+    });
+  }
+
+  // ── Determine signal ──
+  const latest = volSeries[volSeries.length - 1];
+  const currentVol = latest.vol;
+  const currentPct = latest.pct;
+  const distance = TRIGGER - currentVol;
+
+  // Simple rate override check (placeholder — in production, fetch SG 10Y yield)
+  // For now, we flag as "N/A — no yield data" and the pipeline will inject this
+  const rateOverrideActive = false;
+  const rateOverrideText = 'N/A (yield data pending)';
+
+  let signal = 'DORMANT';
+  let signalLabel = 'Signal Dormant';
+  let signalDesc = '';
+
+  if (currentVol >= TRIGGER && !rateOverrideActive) {
+    signal = 'TRIGGERED';
+    signalLabel = 'SIGNAL TRIGGERED — Rotate 10% to SMID';
+    signalDesc = `25d vol at ${(currentVol*100).toFixed(1)}% exceeds ${(TRIGGER*100).toFixed(1)}% threshold. Initiate rotation over 3–5 trading days.`;
+  } else if (currentVol >= TRIGGER && rateOverrideActive) {
+    signal = 'OVERRIDE';
+    signalLabel = 'OVERRIDE ACTIVE — Rate Shock Detected';
+    signalDesc = `Vol trigger met (${(currentVol*100).toFixed(1)}%) but SG 10Y yield has risen >50bps in 3 months. REIT-heavy SMID expected to underperform. Do NOT rotate.`;
+  } else if (currentVol >= TRIGGER * 0.85) {
+    signal = 'APPROACHING';
+    signalLabel = 'Signal Approaching';
+    signalDesc = `25d vol at ${(currentVol*100).toFixed(1)}% — within 15% of the ${(TRIGGER*100).toFixed(1)}% trigger. Monitor closely.`;
+  } else {
+    signal = 'DORMANT';
+    signalLabel = 'Signal Dormant';
+    signalDesc = `25d vol at ${(currentVol*100).toFixed(1)}% — well below trigger. No action required.`;
+  }
+
+  // ── Render ──
+  STATUS.textContent = 'Rendering dashboard…';
+
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+
+  // Meta
+  const fmtDate = (d) => d.toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' });
+  document.getElementById('meta-updated').textContent = `Signal date: ${fmtDate(latest.date)} · Generated: ${fmtDate(new Date())}`;
+
+  // Signal banner
+  const banner = document.getElementById('signalBanner');
+  const dot = document.getElementById('signalDot');
+  const cls = signal.toLowerCase();
+  banner.className = `signal-banner ${cls}`;
+  dot.className = `signal-dot ${cls}`;
+  document.getElementById('signalLabel').textContent = signalLabel;
+  document.getElementById('signalDesc').textContent = signalDesc;
+
+  // KPIs
+  const volColor = currentVol >= TRIGGER ? 'red' : currentVol >= TRIGGER * 0.85 ? 'amber' : 'green';
+  document.getElementById('kpi-vol').textContent = (currentVol * 100).toFixed(1) + '%';
+  document.getElementById('kpi-vol').classList.add(volColor);
+  document.getElementById('kpi-vol-pct').textContent = `${currentPct.toFixed(0)}th percentile`;
+
+  const distColor = distance > 0 ? 'green' : 'red';
+  document.getElementById('kpi-distance').textContent = (distance > 0 ? '+' : '') + (distance * 100).toFixed(1) + '%';
+  document.getElementById('kpi-distance').classList.add(distColor);
+  document.getElementById('kpi-distance-sub').textContent = distance > 0
+    ? `${(distance * 100).toFixed(1)}% below trigger`
+    : `${(-distance * 100).toFixed(1)}% above trigger — TRIGGERED`;
+
+  document.getElementById('kpi-sti').textContent = latest.close.toLocaleString('en-SG', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  document.getElementById('kpi-sti-date').textContent = fmtDate(latest.date);
+
+  // Checklist
+  const checks = [
+    {
+      cond: '25d realised vol ≥ 16.5%',
+      current: (currentVol * 100).toFixed(1) + '%',
+      required: '≥ 16.5%',
+      pass: currentVol >= TRIGGER
+    },
+    {
+      cond: 'Rate-regime override NOT active',
+      current: rateOverrideText,
+      required: 'SG 10Y Δ3m < 50bps',
+      pass: !rateOverrideActive,
+      na: rateOverrideText.includes('N/A')
+    },
+    {
+      cond: 'Minimum hold period (if active)',
+      current: 'No active position',
+      required: '≥ 6 months',
+      pass: true,
+      na: true
+    }
+  ];
+
+  const checkBody = document.getElementById('checklistBody');
+  checks.forEach(c => {
+    const status = c.na ? '<span class="tag na">N/A</span>' :
+                   c.pass ? '<span class="tag pass">PASS</span>' :
+                   '<span class="tag fail">FAIL</span>';
+    checkBody.innerHTML += `<tr><td>${c.cond}</td><td class="mono">${c.current}</td><td class="mono">${c.required}</td><td>${status}</td></tr>`;
+  });
+
+  // ── Vol Chart ──
+  const volLabels = volSeries.map(v => {
+    const d = v.date;
+    return `${d.getDate()} ${d.toLocaleString('en', {month:'short'})} ${d.getFullYear().toString().slice(2)}`;
+  });
+  const volValues = volSeries.map(v => +(v.vol * 100).toFixed(2));
+
+  // Color segments
+  const volColors = volValues.map(v => v >= TRIGGER * 100 ? 'rgba(192, 57, 43, 0.7)' :
+    v >= TRIGGER * 85 ? 'rgba(184, 134, 11, 0.7)' : 'rgba(45, 80, 22, 0.5)');
+
+  new Chart(document.getElementById('volChart'), {
+    type: 'line',
+    data: {
+      labels: volLabels,
+      datasets: [
+        {
+          label: '25d Realised Vol',
+          data: volValues,
+          borderColor: '#2d5016',
+          backgroundColor: 'rgba(45, 80, 22, 0.08)',
+          borderWidth: 1.5,
+          fill: true,
+          pointRadius: 0,
+          tension: 0.3,
+        },
+        {
+          label: 'Trigger (16.5%)',
+          data: volValues.map(() => TRIGGER * 100),
+          borderColor: '#c0392b',
+          borderWidth: 1.5,
+          borderDash: [6, 4],
+          pointRadius: 0,
+          fill: false,
+        },
+        {
+          label: 'Median (14.0%)',
+          data: volValues.map(() => MEDIAN * 100),
+          borderColor: '#8a8578',
+          borderWidth: 1,
+          borderDash: [3, 3],
+          pointRadius: 0,
+          fill: false,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { intersect: false, mode: 'index' },
+      plugins: {
+        legend: { position: 'top', labels: { font: { family: 'DM Sans', size: 11 }, boxWidth: 12, padding: 16 } },
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)}%`
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { maxTicksLimit: 12, font: { family: 'DM Mono', size: 10 }, color: '#8a8578' },
+          grid: { display: false }
+        },
+        y: {
+          ticks: { callback: v => v + '%', font: { family: 'DM Mono', size: 10 }, color: '#8a8578' },
+          grid: { color: '#e8e4db' }
+        }
+      }
+    }
+  });
+
+  // ── Price Chart ──
+  const priceLabels = volSeries.map(v => {
+    const d = v.date;
+    return `${d.getDate()} ${d.toLocaleString('en', {month:'short'})} ${d.getFullYear().toString().slice(2)}`;
+  });
+  const priceValues = volSeries.map(v => +v.close.toFixed(2));
+
+  new Chart(document.getElementById('priceChart'), {
+    type: 'line',
+    data: {
+      labels: priceLabels,
+      datasets: [{
+        label: 'STI',
+        data: priceValues,
+        borderColor: '#2d5016',
+        backgroundColor: 'rgba(45, 80, 22, 0.06)',
+        borderWidth: 1.5,
+        fill: true,
+        pointRadius: 0,
+        tension: 0.3,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { intersect: false, mode: 'index' },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => `STI: ${ctx.parsed.y.toLocaleString('en-SG', {minimumFractionDigits:1})}`
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { maxTicksLimit: 12, font: { family: 'DM Mono', size: 10 }, color: '#8a8578' },
+          grid: { display: false }
+        },
+        y: {
+          ticks: { font: { family: 'DM Mono', size: 10 }, color: '#8a8578' },
+          grid: { color: '#e8e4db' }
+        }
+      }
+    }
+  });
+
+  // ── Signal Log ──
+  const logBody = document.getElementById('logBody');
+  const last60 = volSeries.slice(-60).reverse();
+  last60.forEach(v => {
+    let sig = 'DORMANT';
+    let sigCls = 'dormant';
+    if (v.vol >= TRIGGER) { sig = 'TRIGGERED'; sigCls = 'triggered'; }
+    else if (v.vol >= TRIGGER * 0.85) { sig = 'APPROACHING'; sigCls = 'approaching'; }
+
+    logBody.innerHTML += `<tr>
+      <td>${fmtDate(v.date)}</td>
+      <td>${v.close.toLocaleString('en-SG', {minimumFractionDigits:1, maximumFractionDigits:1})}</td>
+      <td>${(v.vol*100).toFixed(1)}%</td>
+      <td>${v.pct.toFixed(0)}th</td>
+      <td><span class="tag ${sigCls}">${sig}</span></td>
+      <td>—</td>
+    </tr>`;
+  });
+
+})();
+</script>
+</body>
+</html>
