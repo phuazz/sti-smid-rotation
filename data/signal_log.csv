@@ -1,0 +1,2 @@
+date,sti_close,vol_25d,vol_pct,signal,description,rate_override
+2026-03-11,4863.81,16.78,77.0,TRIGGERED,25d vol at 16.8% exceeds 16.5% threshold. Initiate rotation.,N/A
