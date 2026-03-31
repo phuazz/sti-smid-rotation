@@ -10,4 +10,5 @@ date,sti_close,vol_25d,vol_pct,signal,description,rate_override
 2026-03-24,4862.43,18.04,85.0,TRIGGERED,25d vol at 18.0% exceeds 16.5% threshold. Initiate rotation.,
 2026-03-25,4904.54,18.28,86.0,TRIGGERED,25d vol at 18.3% exceeds 16.5% threshold. Initiate rotation.,
 2026-03-26,4887.76,17.79,84.0,TRIGGERED,25d vol at 17.8% exceeds 16.5% threshold. Initiate rotation.,
-2026-03-27,4898.18,17.77,84.0,TRIGGERED,25d vol at 17.8% exceeds 16.5% threshold. Initiate rotation.,N/A
+2026-03-27,4898.18,17.77,84.0,TRIGGERED,25d vol at 17.8% exceeds 16.5% threshold. Initiate rotation.,
+2026-03-30,4897.26,17.67,83.0,TRIGGERED,25d vol at 17.7% exceeds 16.5% threshold. Initiate rotation.,N/A
