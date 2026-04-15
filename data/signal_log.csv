@@ -20,4 +20,5 @@ date,sti_close,vol_25d,vol_pct,signal,description,rate_override
 2026-04-08,4996.05,17.31,81.0,TRIGGERED,25d vol at 17.3% exceeds 16.5% threshold. Initiate rotation.,
 2026-04-09,4977.08,15.8,68.0,APPROACHING,25d vol at 15.8% — within 15% of trigger. Monitor closely.,
 2026-04-10,4989.41,15.7,67.0,APPROACHING,25d vol at 15.7% — within 15% of trigger. Monitor closely.,
-2026-04-13,4984.17,15.71,67.0,APPROACHING,25d vol at 15.7% — within 15% of trigger. Monitor closely.,N/A
+2026-04-13,4984.17,15.71,67.0,APPROACHING,25d vol at 15.7% — within 15% of trigger. Monitor closely.,
+2026-04-14,5007.57,14.25,52.0,APPROACHING,25d vol at 14.2% — within 15% of trigger. Monitor closely.,N/A
