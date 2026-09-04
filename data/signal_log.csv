@@ -112,4 +112,5 @@ date,sti_close,vol_25d,vol_pct,signal,description,rate_override
 2026-08-28,5699.93,11.02,25.0,DORMANT,25d vol at 11.0% — well below trigger. No action required.,
 2026-08-31,5755.36,11.37,27.0,DORMANT,25d vol at 11.4% — well below trigger. No action required.,
 2026-09-01,5710.37,11.62,29.0,DORMANT,25d vol at 11.6% — well below trigger. No action required.,
-2026-09-02,5744.11,11.97,31.0,DORMANT,25d vol at 12.0% — well below trigger. No action required.,N/A
+2026-09-02,5744.11,11.97,31.0,DORMANT,25d vol at 12.0% — well below trigger. No action required.,
+2026-09-03,5747.71,10.42,20.0,DORMANT,25d vol at 10.4% — well below trigger. No action required.,N/A
